@@ -1,3 +1,4 @@
+{-# LANGUAGE ExistentialQuantification #-}
 --  Compiler Toolkit: Self-optimizing LL(1) parser combinators
 --
 --  Author : Manuel M T Chakravarty
@@ -30,15 +31,15 @@
 --  John Launchbury, Erik Meijer, and Tim Sheard (Eds.) "Advanced Functional
 --  Programming", Springer-Verlag, Lecture Notes in Computer Science 1129,
 --  184-207, 1996.  It is much closer to a a revised version published by
---  S. D. Swierstra, but handles actions completely different.  In particular, 
+--  S. D. Swierstra, but handles actions completely different.  In particular,
 --  Swierstra's version does not have a threaded state and meta actions.  The
 --  present module also defines a number of additional combinators and uses
---  finite maps to optimise the construction of the transition relation stored 
+--  finite maps to optimise the construction of the transition relation stored
 --  in the node of the transition graph (this also saves substantial memory).
 --
 --- DOCU ----------------------------------------------------------------------
 --
---  language: Haskell 98 & rank-2 polymorphism (existentially quantified type 
+--  language: Haskell 98 & rank-2 polymorphism (existentially quantified type
 --	      variables)
 --
 --  Unlike conventional parser combinators, the combinators do not produce
@@ -66,7 +67,7 @@
 --    constructor used to represent it internally.
 --
 --  * I tried using arrays to represent the transition relation in the nodes
---    of the graph, but this leads to an enormous memory consumption (at least 
+--    of the graph, but this leads to an enormous memory consumption (at least
 --    with ghc 4.05).  One reason for this is certainly that these arrays are
 --    relatively sparsely populated.
 --
@@ -75,16 +76,16 @@
 --  * Error correction is still missing.
 --
 
-module Parsers (Token, Parser, empty, token, skip, (<|>), (*$>), (*>), ($>),
+module Text.CTK.Parsers (Token, Parser, empty, token, skip, (<|>), (*$>), (*>), ($>),
 		action, meta, opt, (-*>), (*->), many, list, many1, list1,
 		sep, seplist, sep1, seplist1, execParser)
 where
 
-import List       (sort)
+import Data.List       (sort)
 
-import Common     (Position, Pos (posOf), nopos)
-import FiniteMaps (FiniteMap, unitFM, joinCombFM, mapFM, lookupFM, toListFM)
-import Errors     (interr, ErrorLvl(..), Error, makeError)
+import Text.CTK.Common     (Position, Pos (posOf), nopos)
+import Text.CTK.FiniteMaps (FiniteMap, unitFM, joinCombFM, mapFM, lookupFM, toListFM)
+import Text.CTK.Errors     (interr, ErrorLvl(..), Error, makeError)
 
 infix  5 `opt`
 infixl 4 *>, -*>, *->, *$>, $>
@@ -100,7 +101,7 @@ infixl 2 <|>
 class (Pos t, Show t, Eq t, Ord t) => Token t
 
 -- tree structure used to represent parsers specifications (EXPORTED
--- ABSTRACTLY) 
+-- ABSTRACTLY)
 --
 -- * each node corresponds to a state of the represented automaton and is
 --   composed out of an action and a parsing continuation, which encodes the
@@ -118,7 +119,7 @@ data Token t =>
 		  Empty r			-- return if no input
 			(Parser a t r)		-- used if there is input
 		  --
-		  -- selection of acceptable tokens paired with following 
+		  -- selection of acceptable tokens paired with following
 		  -- parser state
 		  --
 		| Alts (FiniteMap t (Parser a t r))
@@ -131,7 +132,7 @@ data Token t =>
 
 -- actions
 --
--- * Note that the rank-2 polymorphism (existentially quantified type 
+-- * Note that the rank-2 polymorphism (existentially quantified type
 --   variable) is essential here to seperate the action function from the
 --   parser (if we don't do that, the actions are pushed down in the parser
 --   structure until they reach the `Empty' variant matching the end-of-file
@@ -178,13 +179,13 @@ empty   :: Token t => r -> Parser a t r
 empty x  = noaction $ Empty x noparser
 
 -- Consume a token that is equal to the given one; the consumed token is
--- returned as the result (EXPORTED) 
+-- returned as the result (EXPORTED)
 --
 token   :: Token t => t -> Parser a t t
 token t  = tokaction $ singleton t (empty ())
 
 -- Consume a token that is equal to the given one; the consumed token is
--- thrown away (EXPORTED) 
+-- thrown away (EXPORTED)
 --
 skip   :: Token t => t -> Parser a t ()
 skip t  = noaction $ singleton t (empty ())
@@ -195,9 +196,9 @@ skip t  = noaction $ singleton t (empty ())
 --
 -- * Alternatives require to merge the alternative sets of the two parsers.
 --   The most interesting case is where both sets contain cases for the same
---   token.  In this case, we left factor over this token.  This requires some 
+--   token.  In this case, we left factor over this token.  This requires some
 --   care with the actions, because we have to be able to decide which of
---   the two actions to apply.  To do so, the two parsers prefix their results 
+--   the two actions to apply.  To do so, the two parsers prefix their results
 --   with a `Left' or `Right' tag, which makes it easy to decided in the new
 --   combined action, which of the two subparsers did match.
 --
@@ -206,7 +207,7 @@ p                       <|> (Parser _ Done)          = p
 --(Parser a (Empty _ p))  <|> (Parser a' (Empty _ q))  = grammarErr p q
 (Parser a (Empty x p))  <|> q                        = mergeEpsilon a  x p q
 p                       <|> (Parser a' (Empty x q))  = mergeEpsilon a' x q p
-(Parser a (Alts alts1)) <|> (Parser a' (Alts alts2)) = 
+(Parser a (Alts alts1)) <|> (Parser a' (Alts alts2)) =
   Parser (a `joinActions` a') $ Alts (joinCombFM (<|>) alts1' alts2')
   where
     alts1' = mapFM (\_ p -> Left  $> p) alts1
@@ -218,16 +219,16 @@ grammarErr p q  = interr $ "Parsers.<|>: Ambiguous grammar!\n\
 			   \  first (right parser): " ++ first q ++ "\n"
 
 mergeEpsilon :: Token t
-	     => Action a t q r -> q -> Parser a t q -> Parser a t r 
+	     => Action a t q r -> q -> Parser a t q -> Parser a t r
 	     -> Parser a t r
-mergeEpsilon a x p q = 
+mergeEpsilon a x p q =
   let anew   = a `joinActions` nometa (flip const)  -- mustn't touch token!
       newcon = Empty (Left x) (Left $> p <|> Right $> q)
   in
-  Parser anew newcon 
+  Parser anew newcon
 
-joinActions :: Token t 
-	    => Action a t q r -> Action a t q' r 
+joinActions :: Token t
+	    => Action a t q r -> Action a t q' r
 	    -> Action a t (Either q q') r
 (Action m con) `joinActions` (Action m' con') =
   Action (joinMeta m m')
@@ -240,10 +241,10 @@ joinActions :: Token t
 -- may be made about the order)
 --
 joinMeta :: (a -> (a, r1)) -> (a -> (a, r2)) -> a -> (a, (r1, r2))
-joinMeta meta meta' = \s -> let 
+joinMeta meta meta' = \s -> let
 			      (s' , q'1) = meta  s
 			      (s'', q'2) = meta' s'
-			    in 
+			    in
 			    (s'', (q'1, q'2))
 
 -- Sequential parsers, where the result of the first is applied to the result
@@ -251,16 +252,16 @@ joinMeta meta meta' = \s -> let
 --
 (*$>) :: Token t => Parser a t (s -> r) -> Parser a t s -> Parser a t r
 -- !!!
-(Parser a@(Action m con) Done) *$> q = 
+(Parser a@(Action m con) Done) *$> q =
   let con' = interr "Parsers.(*$>): Touched action after an error!"
   in
   Parser (Action m con') Done
-(Parser a@(Action m con) (Empty f p)) *$> q = 
+(Parser a@(Action m con) (Empty f p)) *$> q =
 --  _scc_ "*$>:Empty"
   let a' = Action m (\q' t q -> con q' t f q)
   in
   contract a p *$> q <|> contract a' q
-(Parser (Action m con) (Alts alts)) *$> q = 
+(Parser (Action m con) (Alts alts)) *$> q =
 --  _scc_ "*$>:Alt"
   let con' x' t (xp, xq) = con x' t xp xq
   in
@@ -325,20 +326,20 @@ p -*> q  = flip const $> p *$> q
 --
 many       :: Token t => (r -> s -> s) -> s -> Parser a t r -> Parser a t s
 --
--- * we need to build a cycle, to avoid building the parser structure over and 
+-- * we need to build a cycle, to avoid building the parser structure over and
 --   over again
 --
 many f e p  = let me = (f $> p *$> me) `opt` e
 	      in me
 
 -- return the results of a sequence of productions from a nonterminal in a
--- list (EXPORTED) 
+-- list (EXPORTED)
 --
 list :: Token t => Parser a t r -> Parser a t [r]
-list  = many (:) [] 
+list  = many (:) []
 
 -- accept a sequence consisting of at least one production from a nonterminal
--- (EXPORTED) 
+-- (EXPORTED)
 --
 many1     :: Token t => (r -> r -> r) -> Parser a t r -> Parser a t r
 --many1 f p = p <|> (f <$> p <*> many1 f p)
@@ -346,22 +347,22 @@ many1 f p = let me = p <|> (f $> p *$> me)
 	    in me
 
 -- accept a sequence consisting of at least one production from a nonterminal
--- and return a list of results (EXPORTED) 
+-- and return a list of results (EXPORTED)
 --
 list1   :: Token t => Parser a t r -> Parser a t [r]
-list1 p  = let me =     (\x -> [x]) $> p 
+list1 p  = let me =     (\x -> [x]) $> p
 		    <|> ((:) $> p *$> me)
 	   in me
 
--- accept a sequence of productions from a nonterminal, which are seperated by 
+-- accept a sequence of productions from a nonterminal, which are seperated by
 -- productions of another nonterminal (EXPORTED)
 --
-sep :: Token t 
-    => (r -> u -> s -> s) 
-    -> (r -> s) 
-    -> s 
-    -> Parser a t u 
-    -> Parser a t r 
+sep :: Token t
+    => (r -> u -> s -> s)
+    -> (r -> s)
+    -> s
+    -> Parser a t u
+    -> Parser a t r
     -> Parser a t s
 sep f g e sepp p  = let me = g $> p <|> (f $> p *$> sepp *$> me)
 		    in me `opt` e
@@ -370,24 +371,24 @@ sep f g e sepp p  = let me = g $> p <|> (f $> p *$> sepp *$> me)
 -- are seperated by productions of another nonterminal, in a list (EXPORTED)
 --
 seplist :: Token t => Parser a t s -> Parser a t r -> Parser a t [r]
-seplist  = sep (\h _ l -> h:l) (\x -> [x]) [] 
+seplist  = sep (\h _ l -> h:l) (\x -> [x]) []
 
--- accept a sequence of productions from a nonterminal, which are seperated by 
+-- accept a sequence of productions from a nonterminal, which are seperated by
 -- productions of another nonterminal (EXPORTED)
 --
-sep1 :: Token t 
+sep1 :: Token t
      => (r -> s -> r -> r) -> Parser a t s -> Parser a t r -> Parser a t r
 sep1 f sepp p  = let me = p <|> (f $> p *$> sepp *$> me)
 		 in me
 
--- accept a sequence consisting of at least one production from a nonterminal, 
+-- accept a sequence consisting of at least one production from a nonterminal,
 -- which are separated by the productions of another nonterminal; the list of
 -- results is returned (EXPORTED)
 --
 seplist1        :: Token t => Parser a t s -> Parser a t r -> Parser a t [r]
 seplist1 sepp p = p *> list (sepp -*> p) `action` uncurry (:)
 {- Is the above also space save?  Should be.  Contributed by Roman.
-seplist1 sepp p  = let me =     (\x -> [x]) $> p 
+seplist1 sepp p  = let me =     (\x -> [x]) $> p
 		            <|> ((:) $> p *-> sepp *$> me)
 	           in me
 -}
@@ -406,11 +407,11 @@ seplist1 sepp p  = let me =     (\x -> [x]) $> p
 -- * Trailing tokens are returned in the third component of the result (the
 --   longest match is found).
 --
--- * Currently, all errors are fatal; thus, the result (first component of the 
+-- * Currently, all errors are fatal; thus, the result (first component of the
 --   returned pair) is undefined in case of an error (this changes when error
 --   correction is added).
 --
-execParser :: Token t 
+execParser :: Token t
 	   => Parser a t r		-- parser specification
 	   -> a				-- initial state
 	   -> (t -> t)			-- token mapping
@@ -424,7 +425,7 @@ execParser :: Token t
 --   also spoil pipelining).
 --
 execParser (Parser (Action m con) c) a _ [] =   -- eof
-  case c of 
+  case c of
     Empty x _ -> (con (snd . m $ a) errtoken x, [], [])
     _         -> (errresult, [makeError FatalErr nopos eofErr], [])
 execParser (Parser (Action m con) c) a f ts =   -- eat one token
@@ -433,7 +434,7 @@ execParser (Parser (Action m con) c) a f ts =   -- eat one token
 -- !!!		  (t, (x, errs, ts')) -> ((((con $! x') $ t) $!x), errs, ts')
 		  (t, (x, errs, ts')) -> ((((con $ x') $ t) $ x), errs, ts')
   where
-    cont :: Token t 
+    cont :: Token t
 	 => Cont a t r -> a -> (t -> t) -> [t] -> (t, (r, [Error], [t]))
     cont Done        _ f (t:_)  = makeErr (posOf (f t)) trailErr
     cont (Alts alts) a f (t:ts) = let t' = f t
@@ -462,15 +463,15 @@ errtoken  = interr "Parsers.errtoken: Touched undefined token!"
 -- -------------
 
 -- first set of the given parser (prefixed by a `*' if this is an epsilon
--- parser) 
+-- parser)
 --
 first :: Token t => Parser a t r -> String
 first (Parser _ (Empty _ p))  = "*" ++ first p
-first (Parser _ (Alts  alts)) =   show 
-				. sort 
-				. map show 
-				. map fst 
-				. toListFM 
+first (Parser _ (Alts  alts)) =   show
+				. sort
+				. map show
+				. map fst
+				. toListFM
 				$ alts
 
 instance Token t => Show (Parser a t r) where

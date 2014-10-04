@@ -29,11 +29,11 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module Utils (sort, sortBy, lookupBy, indentMultilineString, quantifySubject,
-	      ordinal, Tag(..), mapMaybeM, mapMaybeM_, mapEitherM, mapEitherM_)
+module Text.CTK.Utils (sort, sortBy, lookupBy, indentMultilineString, quantifySubject,
+          ordinal, Tag(..), mapMaybeM, mapMaybeM_, mapEitherM, mapEitherM_)
 where
 
-import Data.List (find)
+import           Data.List (find)
 
 
 -- list operations
@@ -43,17 +43,17 @@ import Data.List (find)
 --
 sort      :: Ord a => [a] -> [a]
 sort []    = []
-sort (m:l) = (sort . filter (< m)) l ++ [m] ++ (sort . filter (>= m)) l 
+sort (m:l) = (sort . filter (< m)) l ++ [m] ++ (sort . filter (>= m)) l
 
 
--- naive sort for a list with explicit ordering relation (smaller than) 
+-- naive sort for a list with explicit ordering relation (smaller than)
 -- (EXPORTED)
 --
 sortBy               :: (a -> a -> Bool) -> [a] -> [a]
 sortBy _       []     = []
-sortBy smaller (m:l)  =    (sortBy smaller . filter (`smaller` m)) l 
-			++ [m] 
-			++ (sortBy smaller . filter (not . (`smaller` m))) l 
+sortBy smaller (m:l)  =    (sortBy smaller . filter (`smaller` m)) l
+            ++ [m]
+            ++ (sortBy smaller . filter (not . (`smaller` m))) l
 
 -- generic lookup
 --
@@ -68,11 +68,11 @@ lookupBy eq x  = fmap snd . find (eq x . fst)
 --
 
 -- indent the given multiline text by the given number of spaces
--- 
+--
 indentMultilineString   :: Int -> String -> String
 indentMultilineString n  = unlines . (map (spaces++)) . lines
-			   where
-			     spaces = take n (repeat ' ')
+               where
+                 spaces = take n (repeat ' ')
 
 -- aux. routines for output
 --
@@ -82,39 +82,39 @@ indentMultilineString n  = unlines . (map (spaces++)) . lines
 -- or ``are'' depending on the quantification (EXPORTED)
 --
 quantifySubject         :: Int -> String -> (String, String)
-quantifySubject no subj  = (noToStr no ++ " " ++ subj 
-			    ++ (if plural then "s" else ""),
-			    if plural then "are" else "is")
-			   where
-			     plural = (no /= 1)
+quantifySubject no subj  = (noToStr no ++ " " ++ subj
+                ++ (if plural then "s" else ""),
+                if plural then "are" else "is")
+               where
+                 plural = (no /= 1)
 
-			     noToStr  0 = "no"
-			     noToStr  1 = "one"
-			     noToStr  2 = "two"
-			     noToStr  3 = "three"
-			     noToStr  4 = "four"
-			     noToStr  5 = "five"
-			     noToStr  6 = "six"
-			     noToStr  7 = "seven"
-			     noToStr  8 = "eight"
-			     noToStr  9 = "nine"
-			     noToStr 10 = "ten"
-			     noToStr 11 = "eleven"
-			     noToStr 12 = "twelve"
-			     noToStr no = show no
+                 noToStr  0 = "no"
+                 noToStr  1 = "one"
+                 noToStr  2 = "two"
+                 noToStr  3 = "three"
+                 noToStr  4 = "four"
+                 noToStr  5 = "five"
+                 noToStr  6 = "six"
+                 noToStr  7 = "seven"
+                 noToStr  8 = "eight"
+                 noToStr  9 = "nine"
+                 noToStr 10 = "ten"
+                 noToStr 11 = "eleven"
+                 noToStr 12 = "twelve"
+                 noToStr no = show no
 
 -- stringfy a ordinal number (must be positive) (EXPORTED)
 --
 ordinal   :: Int -> String
-ordinal n  = if n < 0 
-	     then
-	       error "FATAL ERROR: Utilis: ordinal: Negative number!"
-	     else 
-	       case (n `mod` 10) of
-	         1 | n /= 11 -> show n ++ "st"
-	         2 | n /= 12 -> show n ++ "nd"
-	         3 | n /= 13 -> show n ++ "rd"
-	         _           -> show n ++ "th"
+ordinal n  = if n < 0
+         then
+           error "FATAL ERROR: Utilis: ordinal: Negative number!"
+         else
+           case (n `mod` 10) of
+             1 | n /= 11 -> show n ++ "st"
+             2 | n /= 12 -> show n ++ "nd"
+             3 | n /= 13 -> show n ++ "rd"
+             _           -> show n ++ "th"
 
 
 -- tags
@@ -133,8 +133,8 @@ class Tag a where
 -- maps some monad operation into a `Maybe', yielding a monad
 -- providing the mapped `Maybe' as its result (EXPORTED)
 --
-mapMaybeM            :: Monad m 
-		     => (a -> m b) -> Maybe a -> m (Maybe b)
+mapMaybeM            :: Monad m
+             => (a -> m b) -> Maybe a -> m (Maybe b)
 mapMaybeM m Nothing   = return Nothing
 mapMaybeM m (Just a)  = m a >>= \r -> return (Just r)
 
@@ -146,11 +146,11 @@ mapMaybeM_ m x  = mapMaybeM m x >> return ()
 -- maps monad operations into a `Either', yielding a monad
 -- providing the mapped `Either' as its result (EXPORTED)
 --
-mapEitherM               :: Monad m 
-		         => (a -> m c) 
-			 -> (b -> m d) 
-			 -> Either a b 
-			 -> m (Either c d)
+mapEitherM               :: Monad m
+                 => (a -> m c)
+             -> (b -> m d)
+             -> Either a b
+             -> m (Either c d)
 mapEitherM m n (Left x)   = m x >>= \r -> return (Left r)
 mapEitherM m n (Right y)  = n y >>= \r -> return (Right r)
 

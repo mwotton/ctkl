@@ -28,7 +28,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module FNameOps (basename, dirname, stripDirname, suffix, stripSuffix, addPath)
+module Text.CTK.FNameOps (basename, dirname, stripDirname, suffix, stripSuffix, addPath)
 where
 
 -- strip directory and suffix (EXPORTED)
@@ -36,7 +36,7 @@ where
 --   eg, ../lib/libc.so -> libc
 --
 basename :: FilePath -> FilePath
-basename  = stripSuffix . stripDirname   
+basename  = stripSuffix . stripDirname
 
 -- strip basename and suffix (EXPORTED)
 --
@@ -44,9 +44,9 @@ basename  = stripSuffix . stripDirname
 --
 dirname       :: FilePath -> FilePath
 dirname fname  = let
-		   slashPoss = [pos | ('/', pos) <- zip fname [0..]]
-		 in
-		 take (last' (-1) slashPoss + 1) fname
+           slashPoss = [pos | ('/', pos) <- zip fname [0..]]
+         in
+         take (last' (-1) slashPoss + 1) fname
 
 -- remove dirname (EXPORTED)
 --
@@ -54,9 +54,9 @@ dirname fname  = let
 --
 stripDirname       :: FilePath -> FilePath
 stripDirname fname  = let
-			slashPoss = [pos | ('/', pos) <- zip fname [0..]]
-		      in
-		      drop (last' (-1) slashPoss + 1) fname
+            slashPoss = [pos | ('/', pos) <- zip fname [0..]]
+              in
+              drop (last' (-1) slashPoss + 1) fname
 
 -- get suffix (EXPORTED)
 --
@@ -64,9 +64,9 @@ stripDirname fname  = let
 --
 suffix       :: FilePath -> String
 suffix fname  = let
-		  dotPoss = [pos | ('.', pos) <- zip fname [0..]]
-		in
-		drop (last' (length fname) dotPoss) fname
+          dotPoss = [pos | ('.', pos) <- zip fname [0..]]
+        in
+        drop (last' (length fname) dotPoss) fname
 
 -- remove suffix (EXPORTED)
 --
@@ -74,9 +74,9 @@ suffix fname  = let
 --
 stripSuffix       :: FilePath -> FilePath
 stripSuffix fname  = let
-		       dotPoss = [pos | ('.', pos) <- zip fname [0..]]
-		     in
-		     take (last' (length fname) dotPoss) fname
+               dotPoss = [pos | ('.', pos) <- zip fname [0..]]
+             in
+             take (last' (length fname) dotPoss) fname
 
 -- prepend a path to a file name (EXPORTED)
 --

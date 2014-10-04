@@ -42,8 +42,8 @@
 --  * currently `$|$' imposes a n^2 cost when building a text from top to
 --    bottom
 --
- 
-module Pretty (
+
+module Text.CTK.Pretty (
   Doc, -- instance Show
   empty, isEmpty, char, text, nest, ($$), (<>), cat, sep, fullRender,
   --
@@ -69,8 +69,8 @@ module Pretty (
 ) where
 
 
-infixl 6 <>, <+>	-- vertical composition
-infixl 5 $$		-- horizontal composition
+infixl 6 <>, <+>    -- vertical composition
+infixl 5 $$        -- horizontal composition
 
 
 -- default parameters
@@ -86,12 +86,12 @@ dftRibbonRatio  = 1.5
 -- representation of documents
 -- ---------------------------
 
--- a document is a compact representation (tree shaped) of a set of layouts 
+-- a document is a compact representation (tree shaped) of a set of layouts
 -- for a given text (EXPORTED ABSTRACTLY)
 --
 data Doc    = Nest      Int [DocAlt]  -- set of layouts, indented as given
-data DocAlt = Text      String	      -- one row
-	    | TextAbove String Doc    -- row of text above the remaining doc
+data DocAlt = Text      String          -- one row
+        | TextAbove String Doc    -- row of text above the remaining doc
 
 -- render with defaults
 --
@@ -107,7 +107,7 @@ empty  = Nest 0 []
 --
 isEmpty             :: Doc -> Bool
 isEmpty (Nest _ [])  = True
-isEmpty _	     = False
+isEmpty _         = False
 
 -- single character (EXPORTED)
 --
@@ -129,18 +129,18 @@ nest k (Nest m alts)  = Nest (k + m) alts
 ($$)                :: Doc -> Doc -> Doc
 (Nest _ []  ) $$ doc = doc
 (Nest m alts) $$ doc = Nest m [below a | a <- alts]
-		       where
-			 below                   :: DocAlt -> DocAlt
-			 below (Text s)           = let
-						      doc' = nestDoc (-m) doc
-						    in
-						    TextAbove s doc'
-			 below (TextAbove s rest) = let
-						      doc' = rest 
-							     $$ 
-							     nestDoc (-m) doc
-						    in
-						    TextAbove s doc'
+               where
+             below                   :: DocAlt -> DocAlt
+             below (Text s)           = let
+                              doc' = nestDoc (-m) doc
+                            in
+                            TextAbove s doc'
+             below (TextAbove s rest) = let
+                              doc' = rest
+                                 $$
+                                 nestDoc (-m) doc
+                            in
+                            TextAbove s doc'
 
 -- horizontal composition of documents (EXPORTED)
 --
@@ -151,20 +151,20 @@ doc           <> (Nest _ []  )  = doc
   where
     nextTo                    :: DocAlt -> [DocAlt]
     nextTo (Text s)            = let
-				   Nest _ bs = doc
-				 in
-				 [s `inFrontOf` b | b <- bs]
+                   Nest _ bs = doc
+                 in
+                 [s `inFrontOf` b | b <- bs]
     nextTo (TextAbove s rest)  = [TextAbove s (rest <> doc)]
 
     inFrontOf                       :: String -> DocAlt -> DocAlt
-    s `inFrontOf` (Text t)	       = Text (s ++ t)
-    s `inFrontOf` (TextAbove t doc') = let 
-					 l = length s
-				       in
-				       TextAbove (s ++ t) 
-						 (nestDoc l doc')
+    s `inFrontOf` (Text t)           = Text (s ++ t)
+    s `inFrontOf` (TextAbove t doc') = let
+                     l = length s
+                       in
+                       TextAbove (s ++ t)
+                         (nestDoc l doc')
 
--- given a list of sub-documents, generate a composite document where the 
+-- given a list of sub-documents, generate a composite document where the
 -- sub-documents are placed next to each other (EXPORTED)
 --
 -- * when generating a layout a horizontal layout is only chosen
@@ -173,7 +173,7 @@ doc           <> (Nest _ []  )  = doc
 cat      :: [Doc] -> Doc
 cat docs  = catsep (<>) docs
 
--- given a list of sub-documents, generate a composite document where the 
+-- given a list of sub-documents, generate a composite document where the
 -- sub-documents are placed next to each other with some seperation between
 -- each of them (EXPORTED)
 --
@@ -187,8 +187,8 @@ sep docs  = catsep (<+>) docs
 --
 catsep            :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 catsep _     []    = textDoc ""
-catsep hcomb docs  = fitunion (foldr hcomb empty docs) 
-			      (foldr ($$)  empty docs)
+catsep hcomb docs  = fitunion (foldr hcomb empty docs)
+                  (foldr ($$)  empty docs)
   where
     --
     -- given two documents, where the first one is a horizontal
@@ -207,7 +207,7 @@ catsep hcomb docs  = fitunion (foldr hcomb empty docs)
 --   characters on a line excluding leading and trailing white spaces)
 --
 fullRender                   :: Int -> Float -> Doc -> String
-fullRender width ribbonRatio  = 
+fullRender width ribbonRatio  =
   let
     ribbon = round (fromIntegral width / ribbonRatio)
   in
@@ -218,20 +218,20 @@ fullRender width ribbonRatio  =
     --
     nestbest                   :: Int -> Int -> Int -> Doc -> String
     nestbest k w r (Nest _ []  )  = ""
-    nestbest k w r (Nest m alts)  = 
-	     case foldr1 (choose (w - m) r) alts 
-	     of
-	       Text s         -> indent (k + m) s
-	       TextAbove s bs -> indent (k + m) s 
-				 ++ nestbest (k + m) (w - m) r bs
+    nestbest k w r (Nest m alts)  =
+         case foldr1 (choose (w - m) r) alts
+         of
+           Text s         -> indent (k + m) s
+           TextAbove s bs -> indent (k + m) s
+                 ++ nestbest (k + m) (w - m) r bs
     --
     -- indent the given string by the given amount
     --
     indent     :: Int -> String -> String
     indent k s  = "\n" ++ copy k ' ' ++ s
-		  where
-		    copy   :: Int -> a -> [a]
-		    copy n  = take n . repeat	     
+          where
+            copy   :: Int -> a -> [a]
+            copy n  = take n . repeat
 
     -- given the remaining width and ribbon together with two possible
     -- documents, choose the first one if its first line is nice; otherwise,
@@ -239,19 +239,19 @@ fullRender width ribbonRatio  =
     --
     choose                 :: Int -> Int -> DocAlt -> DocAlt -> DocAlt
     choose w r alts1 alts2  = if (nice w r (firstline alts1))
-			      then alts1
-			      else alts2
-			      where
-			        firstline (Text s)        = s
-			        firstline (TextAbove s _) = s
+                  then alts1
+                  else alts2
+                  where
+                    firstline (Text s)        = s
+                    firstline (TextAbove s _) = s
 
     -- given remaining width and ribbon width decide whether a line
     -- is nice or not
     --
     nice       :: Int -> Int -> String -> Bool
     nice w r s  = (l <= w) && (l <= r)
-		  where
-		    l = length s
+          where
+            l = length s
 
 
 -- derived combinators
@@ -312,7 +312,7 @@ rational  = toDoc
 
 -- wrap a document into various forms of brackets
 --
-parens, brackets, braces :: Doc -> Doc 
+parens, brackets, braces :: Doc -> Doc
 parens   doc = lparen <> doc <> rparen
 brackets doc = lbrack <> doc <> rbrack
 braces   doc = lbrace <> doc <> rbrace
@@ -328,8 +328,8 @@ doubleQuotes doc = char '"' <> doc <> char '"'
 --
 (<+>)                  :: Doc -> Doc -> Doc
 d1 <+> d2 | isEmpty d1  = d2
-	  | isEmpty d2  = d1
-	  | otherwise   = d1 <> space <> d2
+      | isEmpty d2  = d1
+      | otherwise   = d1 <> space <> d2
 
 -- list version of horizontal composition (EXPORTED)
 --
@@ -389,30 +389,30 @@ instance Pretty Doc where
 --
 usedWhen                        :: (Doc -> Doc) -> Bool -> Doc -> Doc
 usedWhen wrap c doc | c          = wrap doc
-		    | otherwise  = doc
+            | otherwise  = doc
 
 -- associativity of an infix operator (EXPORTED)
 --
 data Assoc = LeftAssoc | RightAssoc | NoAssoc
-	   deriving (Eq)
+       deriving (Eq)
 
 -- pretty print an infix operator given its precedence, lexeme, and its two
 -- arguments (EXPORTED)
 --
-infixOp                              :: (Pretty a, Pretty b) 
-				     => Assoc	  -- associativity of operator
-				     -> Int	  -- precedence of operator
-				     -> String    -- lexeme of operator
-				     -> a	  -- left argument
-				     -> b	  -- right argument
-				     -> Int	  -- precedence of context
-	                             -> Doc
-infixOp assoc opp lexeme arg1 arg2 p  = parens `usedWhen` (p > opp) $ 
-					  hsep [
-					    prettyPrec leftOpp  arg1,
-					    text lexeme,
-					    prettyPrec rightOpp arg2
-					  ]
+infixOp                              :: (Pretty a, Pretty b)
+                     => Assoc      -- associativity of operator
+                     -> Int      -- precedence of operator
+                     -> String    -- lexeme of operator
+                     -> a      -- left argument
+                     -> b      -- right argument
+                     -> Int      -- precedence of context
+                                 -> Doc
+infixOp assoc opp lexeme arg1 arg2 p  = parens `usedWhen` (p > opp) $
+                      hsep [
+                        prettyPrec leftOpp  arg1,
+                        text lexeme,
+                        prettyPrec rightOpp arg2
+                      ]
   where
     leftOpp  = if (assoc == RightAssoc) then opp + 1 else opp
     rightOpp = if (assoc == LeftAssoc ) then opp + 1 else opp
@@ -421,8 +421,8 @@ infixOp assoc opp lexeme arg1 arg2 p  = parens `usedWhen` (p > opp) $
 -- the legacy interface (this is only kept for compatibility)
 -- --------------------
 
-infixr 1 $|$	-- vertical composition
-infixr 1 <^>	-- horizontal composition
+infixr 1 $|$    -- vertical composition
+infixr 1 <^>    -- horizontal composition
 
 
 textDoc :: String -> Doc
@@ -441,8 +441,8 @@ sepDocs :: [Doc] -> Doc
 sepDocs  = sep
 
 bestDoc              :: Int -> Int -> Doc -> String
-bestDoc width ribbon  = fullRender width 
-				   (fromIntegral width / fromIntegral ribbon)
+bestDoc width ribbon  = fullRender width
+                   (fromIntegral width / fromIntegral ribbon)
 
 
 -- debugging support
@@ -451,6 +451,6 @@ bestDoc width ribbon  = fullRender width
 dumpDoc               :: Doc -> String
 dumpDoc (Nest _ []  )  = "<empty>"
 dumpDoc (Nest m alts)  = unlines . map (++ "\n--") . map outline $ alts
-			 where
-			   outline (Text      str  ) = str
-			   outline (TextAbove str _) = str ++ "\n..."
+             where
+               outline (Text      str  ) = str
+               outline (TextAbove str _) = str ++ "\n..."

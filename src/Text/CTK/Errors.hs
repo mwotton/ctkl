@@ -25,13 +25,13 @@
 --
 --  language: Haskell 98
 --
---  *  the single lines of error messages shouldn't be to long as file name 
+--  *  the single lines of error messages shouldn't be to long as file name
 --     and position are prepended at each line
 --
 --- TODO ----------------------------------------------------------------------
 --
 
-module Errors (
+module Text.CTK.Errors (
   -- handling of internal error
   --
   interr, todo,
@@ -41,9 +41,9 @@ module Errors (
   ErrorLvl(..), Error, makeError, errorLvl, showError, errorAtPos
 ) where
 
-import Config (assertEnabled)
-import Common (Position, isInternalPos)
-import Utils  (indentMultilineString)
+import           Text.CTK.Common (Position, isInternalPos)
+import           Text.CTK.Config (assertEnabled)
+import           Text.CTK.Utils  (indentMultilineString)
 
 
 -- internal errors
@@ -52,17 +52,17 @@ import Utils  (indentMultilineString)
 -- raise a fatal internal error; message may have multiple lines (EXPORTED)
 --
 interr     :: String -> a
-interr msg  = error ("INTERNAL COMPILER ERROR:\n" 
-		     ++ indentMultilineString 2 msg 
-		     ++ "\n")
+interr msg  = error ("INTERNAL COMPILER ERROR:\n"
+             ++ indentMultilineString 2 msg
+             ++ "\n")
 
 -- raise a error due to a implementation restriction; message may have multiple
--- lines (EXPORTED) 
+-- lines (EXPORTED)
 --
 todo     :: String -> a
 todo msg  = error ("Feature not yet implemented:\n"
-		   ++ indentMultilineString 2 msg 
-		   ++ "\n")
+           ++ indentMultilineString 2 msg
+           ++ "\n")
 
 
 -- errors in the compiled program
@@ -70,10 +70,10 @@ todo msg  = error ("Feature not yet implemented:\n"
 
 -- the higher the level of an error, the more critical it is (EXPORTED)
 --
-data ErrorLvl = WarningErr 		-- does not affect compilation
-	      | ErrorErr     		-- cannot generate code
-	      | FatalErr     		-- abort immediately
-	      deriving (Eq, Ord)
+data ErrorLvl = WarningErr         -- does not affect compilation
+          | ErrorErr             -- cannot generate code
+          | FatalErr             -- abort immediately
+          deriving (Eq, Ord)
 
 data Error = Error ErrorLvl Position [String]  -- (EXPORTED ABSTRACTLY)
 
@@ -85,12 +85,12 @@ data Error = Error ErrorLvl Position [String]  -- (EXPORTED ABSTRACTLY)
 --
 instance Eq Error where
   (Error lvl1 pos1 _) == (Error lvl2 pos2 _) = lvl1 == lvl2 && pos1 == pos2
-  
+
 instance Ord Error where
   (Error lvl1 pos1 _) <  (Error lvl2 pos2 _) = pos1 < pos2
-					       || (pos1 == pos2 && lvl1 < lvl2)
-  e1                  <= e2		     = e1 < e2 || e1 == e2
-  
+                           || (pos1 == pos2 && lvl1 < lvl2)
+  e1                  <= e2             = e1 < e2 || e1 == e2
+
 
 -- produce an `Error', given its level, position, and a list of lines of
 -- the error message that must not be empty (EXPORTED)
@@ -109,11 +109,11 @@ errorLvl (Error lvl _ _)  = lvl
 --
 -- * the format is
 --
---     <fname>:<row>: (column <col>) [<err lvl>] 
+--     <fname>:<row>: (column <col>) [<err lvl>]
 --       >>> <line_1>
 --       <line_2>
 --         ...
---	 <line_n>
+--     <line_n>
 --
 -- * internal errors (identified by a special position value) are formatted as
 --
@@ -121,30 +121,30 @@ errorLvl (Error lvl _ _)  = lvl
 --       >>> <line_1>
 --       <line_2>
 --         ...
---	 <line_n>
+--     <line_n>
 --
 showError :: Error -> String
 showError (Error _   pos               (l:ls))  | isInternalPos pos =
-  "INTERNAL ERROR!\n" 
+  "INTERNAL ERROR!\n"
   ++ "  >>> " ++ l ++ "\n"
-  ++ (indentMultilineString 2 . unlines) ls  
+  ++ (indentMultilineString 2 . unlines) ls
 showError (Error lvl (fname, row, col) (l:ls))  =
   let
     prefix = fname ++ ":" ++ show (row::Int) ++ ": "
-	     ++ "(column " 
-	     ++ show (col::Int) 
-	     ++ ") [" 
-	     ++ showErrorLvl lvl
-	     ++ "] "
+         ++ "(column "
+         ++ show (col::Int)
+         ++ ") ["
+         ++ showErrorLvl lvl
+         ++ "] "
     showErrorLvl WarningErr = "WARNING"
     showErrorLvl ErrorErr   = "ERROR"
     showErrorLvl FatalErr   = "FATAL"
   in
-  prefix ++ "\n" 
+  prefix ++ "\n"
   ++ "  >>> " ++ l ++ "\n"
   ++ (indentMultilineString 2 . unlines) ls
 showError (Error _  _                  []   )   = interr "Errors: showError:\
-					                \ Empty error message!"
+                                    \ Empty error message!"
 
 errorAtPos         :: Position -> [String] -> a
 errorAtPos pos msg  = (error . showError . makeError ErrorErr pos) msg

@@ -32,11 +32,11 @@
 --
 --  language: Haskell 98
 --
---  * This implementation is based in bounded balance binary trees. They 
+--  * This implementation is based in bounded balance binary trees. They
 --    achieve good balancing while being simpler to maintain than AVL trees.
 --
 --  * The implementation design is based on the idea of smart constructors,
---    i.e., constructors that guarantee the compliance of the result with some 
+--    i.e., constructors that guarantee the compliance of the result with some
 --    constraints applied to the construction of the data type.
 --
 --- TODO ----------------------------------------------------------------------
@@ -45,9 +45,9 @@
 --    of the above mentioned technical report would be implemented.
 --
 
-module FiniteMaps (FiniteMap, zeroFM, unitFM, listToFM, listToCombFM, joinFM, 
+module Text.CTK.FiniteMaps (FiniteMap, zeroFM, unitFM, listToFM, listToCombFM, joinFM,
 		   joinCombFM, sizeFM, addToFM, addToCombFM, delFromFM, diffFM,
-		   intersectFM, intersectCombFM, mapFM, foldFM, filterFM, 
+		   intersectFM, intersectCombFM, mapFM, foldFM, filterFM,
 		   lookupFM, lookupDftFM, toListFM, domFM, imageFM)
 where
 
@@ -104,15 +104,15 @@ unitFM k e  = Node k e 1 Leaf Leaf
 -- makes a list of key-element pairs into a finite map
 --
 -- in case of duplicates, the last is taken
--- 
+--
 listToFM :: Ord k => [(k, e)] -> FiniteMap k e
 listToFM  = listToCombFM const
 
--- makes a list of key-element pairs into a finite map where collisions are 
+-- makes a list of key-element pairs into a finite map where collisions are
 -- resolved by an explicit combiner fun
 --
 -- the combiner expects the new element as its first argument
--- 
+--
 listToCombFM   :: Ord k => (e -> e -> e) -> [(k, e)] -> FiniteMap k e
 listToCombFM c  = foldl addOnePair zeroFM
 		  where
@@ -124,7 +124,7 @@ sizeFM                  :: Ord k => FiniteMap k e -> Int
 sizeFM Leaf              = 0
 sizeFM (Node _ _ s _ _)  = s
 
--- builds a node that automagically contains the right size 
+-- builds a node that automagically contains the right size
 --
 smartNode :: Ord k
 	  => k -> e -> (FiniteMap k e) -> (FiniteMap k e) -> (FiniteMap k e)
@@ -134,7 +134,7 @@ smartNode k e sm gr = Node k e (1 + sizeFM sm + sizeFM gr) sm gr
 -- the right size; ONLY ONE of the subtrees is allowed to be off balance and
 -- only by ONE element
 --
-smarterNode :: Ord k 
+smarterNode :: Ord k
 	    => k -> e -> (FiniteMap k e) -> (FiniteMap k e) -> (FiniteMap k e)
 smarterNode k e sm gr =
   let
@@ -142,9 +142,9 @@ smarterNode k e sm gr =
     gr_n = sizeFM gr
   in
     if (sm_n + gr_n) < 2	-- very small tree (one part is a leaf)
-    then 
+    then
       smartNode k e sm gr	-- => construct directly
-    else 
+    else
     if gr_n > (ratio * sm_n)    -- child with greater keys is too big
     then			-- => rotate left
       let
@@ -165,8 +165,8 @@ smarterNode k e sm gr =
     else
       smartNode k e sm gr	-- else nearly balanced => construct directly
   where
-    single_L ka ea x (Node kb eb _ y z) = smartNode kb eb 
-						    (smartNode ka ea x y) 
+    single_L ka ea x (Node kb eb _ y z) = smartNode kb eb
+						    (smartNode ka ea x y)
 						    z
     double_L ka ea x (Node kc ec _ (Node kb eb _ y1 y2) z) =
 					  smartNode kb eb
@@ -174,7 +174,7 @@ smarterNode k e sm gr =
 						    (smartNode kc ec y2 z)
     single_R kb eb (Node ka ea _ x y) z = smartNode ka ea
 						    x
-						    (smartNode kb eb y z) 
+						    (smartNode kb eb y z)
     double_R kc ec (Node ka ea _ x (Node kb eb _ y1 y2)) z =
 					  smartNode kb eb
 						    (smartNode ka ea x  y1)
@@ -187,7 +187,7 @@ smarterNode k e sm gr =
 addToFM :: Ord k => k -> e -> FiniteMap k e -> FiniteMap k e
 addToFM  = addToCombFM const
 
--- add the given key-element pair to the map where collisions are resolved by 
+-- add the given key-element pair to the map where collisions are resolved by
 -- an explicit combiner fun
 --
 -- the combiner expects the new element as its first argument
@@ -195,12 +195,12 @@ addToFM  = addToCombFM const
 addToCombFM :: Ord k
 	    => (e -> e -> e) -> k -> e -> FiniteMap k e -> FiniteMap k e
 addToCombFM c k e Leaf                 = unitFM k e
-addToCombFM c k e (Node k' e' n sm gr) 
-	    | k < k'		       = smarterNode k' e' 
+addToCombFM c k e (Node k' e' n sm gr)
+	    | k < k'		       = smarterNode k' e'
 						     (addToCombFM c k e sm)
 						     gr
-	    | k > k'		       = smarterNode k' e' 
-						     sm 
+	    | k > k'		       = smarterNode k' e'
+						     sm
 						     (addToCombFM c k e gr)
 	    | otherwise		       = Node k (c e e') n sm gr
 
@@ -216,13 +216,13 @@ delFromFM k (Node k' e' n sm gr)
 	  | otherwise		 = smartGlue sm gr
 
 -- given two maps where all keys in the left are smaller than those in the
--- right and they are not too far out of balance (within ratio), glue them 
+-- right and they are not too far out of balance (within ratio), glue them
 -- into one map
 --
 smartGlue           :: Ord k => FiniteMap k e -> FiniteMap k e -> FiniteMap k e
 smartGlue Leaf gr    = gr
 smartGlue sm   Leaf  = sm
-smartGlue sm   gr    = let 
+smartGlue sm   gr    = let
 		         (k, e, gr') = extractMin gr
 		       in
 		         smarterNode k e sm gr'
@@ -250,7 +250,7 @@ glue sm@(Node k_sm e_sm n_sm sm_sm gr_sm)
      | (ratio * n_gr) < n_sm
        = smarterNode k_sm e_sm sm_sm (glue gr_sm gr)
      | otherwise
-       = let 
+       = let
 	   (k, e, gr') = extractMin gr
 	 in
 	   smarterNode k e sm gr'
@@ -298,7 +298,7 @@ joinFM (Node k e _ sm gr) m    = smartestNode k e sm' gr'
 
 -- joins two maps where collisions are resolved by an explicit combiner fun
 --
-joinCombFM :: Ord k 
+joinCombFM :: Ord k
 	   => (e -> e -> e) -> FiniteMap k e -> FiniteMap k e -> FiniteMap k e
 joinCombFM c m                  Leaf = m
 joinCombFM c Leaf               m    = m
@@ -306,7 +306,7 @@ joinCombFM c (Node k e _ sm gr) m    = smartestNode k e' sm' gr'
 				       where
 					 sm' = joinCombFM c sm (smaller k m)
 					 gr' = joinCombFM c gr (greater k m)
-					 e'  = case lookupFM m k 
+					 e'  = case lookupFM m k
 					       of
 					         Just f  -> c e f
 						 Nothing -> e
@@ -314,10 +314,10 @@ joinCombFM c (Node k e _ sm gr) m    = smartestNode k e' sm' gr'
 -- cut the part of the tree that is smaller than the given key out of the
 -- map
 --
-smaller                          :: Ord k 
+smaller                          :: Ord k
 				 => k -> FiniteMap k e -> FiniteMap k e
 smaller _ Leaf		          = Leaf
-smaller k (Node k' e _ sm gr) 
+smaller k (Node k' e _ sm gr)
 	| k < k'		  = smaller k sm
 	| k > k'		  = smartestNode k' e sm (smaller k gr)
 	| otherwise		  = sm
@@ -328,12 +328,12 @@ smaller k (Node k' e _ sm gr)
 greater                          :: Ord k
 				 => k -> FiniteMap k e -> FiniteMap k e
 greater _ Leaf		          = Leaf
-greater k (Node k' e _ sm gr) 
+greater k (Node k' e _ sm gr)
 	| k > k'		  = greater k gr
 	| k < k'		  = smartestNode k' e (greater k sm) gr
 	| otherwise		  = gr
 
--- given two finite maps, yields a finite map containg all elements of the 
+-- given two finite maps, yields a finite map containg all elements of the
 -- first argument except those having a key that is contained in the second
 -- map
 --
@@ -360,13 +360,13 @@ intersectFM  = intersectCombFM const
 -- function
 --
 intersectCombFM :: Ord k
-		=> (e -> e -> e) 
-		-> FiniteMap k e 
-		-> FiniteMap k e 
+		=> (e -> e -> e)
+		-> FiniteMap k e
+		-> FiniteMap k e
 		-> FiniteMap k e
 intersectCombFM c _    Leaf            = Leaf
 intersectCombFM c Leaf _               = Leaf
-intersectCombFM c (Node k e _ sm gr) m 
+intersectCombFM c (Node k e _ sm gr) m
 		| contained            = smartestNode k (c e e') sm' gr'
 		| otherwise            = glue sm' gr'
 		where
@@ -379,7 +379,7 @@ intersectCombFM c (Node k e _ sm gr) m
 
 		  undefined = error "FiniteMaps: intersectCombFM: Undefined"
 
--- given a function on a finite maps elements and a finite map, yield the 
+-- given a function on a finite maps elements and a finite map, yield the
 -- finite map where every element is replaced as specified by the function
 --
 mapFM                      :: Ord k
@@ -395,7 +395,7 @@ foldFM                        :: Ord k
 foldFM f z Leaf                = z
 foldFM f z (Node k e _ sm gr)  = foldFM f (f k e (foldFM f z gr)) sm
 
--- given a predicate and a finite map, yields the finite map containing all 
+-- given a predicate and a finite map, yields the finite map containing all
 -- key-element pairs satisfying the predicate
 --
 filterFM :: Ord k => (k -> e -> Bool) -> FiniteMap k e -> FiniteMap k e
@@ -416,11 +416,11 @@ lookupFM (Node k e _ sm gr) k' | k' == k = Just e
 			       | k' >  k = lookupFM gr k'
 
 -- just as `lookupFM', but instead of returning a `Maybe' type, a default
--- value to be returned in case that the key is not in the map has to be 
+-- value to be returned in case that the key is not in the map has to be
 -- specified
 --
 lookupDftFM         :: Ord k => FiniteMap k e -> e -> k -> e
-lookupDftFM map e k = case lookupFM map k 
+lookupDftFM map e k = case lookupFM map k
 		       of
 			 Just e' -> e'
 			 Nothing -> e
@@ -446,14 +446,13 @@ toShowS      :: (Show a, Show b, Ord a) => Int -> FiniteMap a b -> ShowS
 toShowS _ fm  = format fm 0
 		where
 		  format Leaf               _      = id
-		  format (Node k e n sm gr) indent = 
+		  format (Node k e n sm gr) indent =
 		    let
 		      this = showString (take indent (repeat ' '))
-			     . shows k . showString " --> " . shows e 
-			     . showString " (size: " . shows n 
+			     . shows k . showString " --> " . shows e
+			     . showString " (size: " . shows n
 			     . showString ")\n"
 		    in
-			this 
-		      . format sm (indent + 2) 
-		      . format gr (indent + 2) 
-
+			this
+		      . format sm (indent + 2)
+		      . format gr (indent + 2)

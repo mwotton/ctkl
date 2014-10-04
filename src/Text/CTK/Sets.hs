@@ -20,7 +20,7 @@
 --- DESCRIPTION ---------------------------------------------------------------
 --
 --  This module provides sets as an abstract data type implemented on top of
---  finite maps. 
+--  finite maps.
 --
 --- DOCU ----------------------------------------------------------------------
 --
@@ -29,7 +29,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module Sets (
+module Text.CTK.Sets (
   Set, zeroSet, unitSet, listToSet, joinSet, sizeSet, addToSet,
   delFromSet, diffSet, isSubSet, isSuperSet, intersectSet, mapSet,
   foldSet, filterSet, elemSet, toListSet, powerSet,
@@ -39,21 +39,21 @@ module Sets (
   domSetFM
 ) where
 
-import FiniteMaps (FiniteMap, zeroFM, unitFM, listToFM, joinFM, 
-		   joinCombFM, sizeFM, addToFM, delFromFM, diffFM,
-		   intersectFM, foldFM, filterFM, lookupFM, lookupDftFM,
-		   mapFM, toListFM)
+import           Text.CTK.FiniteMaps (FiniteMap, addToFM, delFromFM, diffFM,
+                                      filterFM, foldFM, intersectFM, joinCombFM,
+                                      joinFM, listToFM, lookupDftFM, lookupFM,
+                                      mapFM, sizeFM, toListFM, unitFM, zeroFM)
 
 -- a set is a finite map with a trivial image (EXPORTED ABSTRACT)
 --
-newtype (Ord a) => 
-	Set a = Set (FiniteMap a ())
-		deriving (Eq, Ord)
+newtype (Ord a) =>
+    Set a = Set (FiniteMap a ())
+        deriving (Eq, Ord)
 
 -- ATTENION: the ordering is _not_ the subset relation
 --
 instance (Show a, Ord a) => Show (Set a) where
-  showsPrec = toShowS		-- defined below
+  showsPrec = toShowS        -- defined below
 
 
 zeroSet :: Ord a => Set a
@@ -77,7 +77,7 @@ delFromSet x (Set s)  = Set $ delFromFM x s
 joinSet                 :: Ord a => Set a -> Set a -> Set a
 joinSet (Set s) (Set t)  = Set $ joinFM s t
 
-diffSet		        :: Ord a => Set a -> Set a -> Set a
+diffSet                :: Ord a => Set a -> Set a -> Set a
 diffSet (Set s) (Set t)  = Set $ diffFM s t
 
 isSubSet       :: Ord a => Set a -> Set a -> Bool
@@ -100,8 +100,8 @@ filterSet p (Set s)  = Set $ filterFM (\x _ -> p x) s
 
 elemSet           :: Ord a => a -> Set a -> Bool
 elemSet x (Set s)  = case lookupFM s x of
-		       Nothing -> False
-		       Just _  -> True
+               Nothing -> False
+               Just _  -> True
 
 toListSet         :: Ord a => Set a -> [a]
 toListSet (Set s)  = (map fst . toListFM) s
@@ -110,19 +110,19 @@ toListSet (Set s)  = (map fst . toListFM) s
 --
 powerSet :: Ord a => Set a -> Set (Set a)
 powerSet  = foldSet addOne (unitSet zeroSet)
-	    where
-	      addOne e s = mapSet (addToSet e) s `joinSet` s
+        where
+          addOne e s = mapSet (addToSet e) s `joinSet` s
 
 -- pretty print routine (used as a method in the `Set' instance of `Show')
 --
 toShowS           :: (Show a, Ord a) => Int -> Set a -> ShowS
-toShowS _ (Set s)  =   showString "{" 
-		     . (format . map fst . toListFM $ s) 
-		     . showString "}"
-		     where
-		       format []     = showString ""
-		       format [x]    = shows x
-		       format (x:xs) = shows x . showString ", " . format xs
+toShowS _ (Set s)  =   showString "{"
+             . (format . map fst . toListFM $ s)
+             . showString "}"
+             where
+               format []     = showString ""
+               format [x]    = shows x
+               format (x:xs) = shows x . showString ", " . format xs
 
 
 -- Operations relating to the underlying finite maps
