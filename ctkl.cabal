@@ -5,7 +5,7 @@ name:                ctkl
 version:             0.27.0.0
 -- synopsis:
 -- description:
-license:             LGPL-2.1
+license:             BSD3
 license-file:        LICENSE
 author:              Manuel Chakravarty, Sven Panne
 maintainer:          mwotton@gmail.com
